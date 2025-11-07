@@ -1,0 +1,31 @@
+/* styles.css - small custom styling */
+
+body {
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(180deg, #f6f9ff 0%, #ffffff 100%);
+  }
+  
+  .card {
+    border: none;
+  }
+  
+  .input-group-text {
+    background: #f1f5ff;
+    border: none;
+  }
+  
+  #pwText {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+  
+  /* color progress bars based on bootstrap classes (we will change class in JS) */
+  .progress-bar.weak { background-color: #dc3545 !important; }       /* red */
+  .progress-bar.fair { background-color: #fd7e14 !important; }       /* orange */
+  .progress-bar.good { background-color: #0d6efd !important; }       /* blue */
+  .progress-bar.strong { background-color: #198754 !important; }     /* green */
+  
+  #resultMessage {
+    min-height: 1.2rem;
+  }
+  
