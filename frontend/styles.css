@@ -1,31 +1,63 @@
-/* styles.css - small custom styling */
+/* Additional minor styles to complement Bootstrap */
+.progress-bar.weak { background-color: #dc3545; }
+.progress-bar.fair { background-color: #fd7e14; }
+.progress-bar.good { background-color: #0d6efd; }
+.progress-bar.strong { background-color: #198754; }
 
-body {
-    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: linear-gradient(180deg, #f6f9ff 0%, #ffffff 100%);
+/* Cards */
+.card {
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 1rem;
+}
+.card.shadow-sm:hover {
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.08);
+  transition: box-shadow .2s ease-in-out;
+}
+
+/* Headings */
+h4, h5, h6 {
+  letter-spacing: .2px;
+}
+
+/* Buttons */
+.btn {
+  border-radius: .6rem;
+}
+.btn-info {
+  color: #fff;
+}
+
+/* Layout helpers */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 992px) {
+  .dashboard-grid {
+    grid-template-columns: 2fr 1fr;
   }
-  
-  .card {
-    border: none;
-  }
-  
-  .input-group-text {
-    background: #f1f5ff;
-    border: none;
-  }
-  
-  #pwText {
-    font-size: 0.9rem;
-    color: #6b7280;
-  }
-  
-  /* color progress bars based on bootstrap classes (we will change class in JS) */
-  .progress-bar.weak { background-color: #dc3545 !important; }       /* red */
-  .progress-bar.fair { background-color: #fd7e14 !important; }       /* orange */
-  .progress-bar.good { background-color: #0d6efd !important; }       /* blue */
-  .progress-bar.strong { background-color: #198754 !important; }     /* green */
-  
-  #resultMessage {
-    min-height: 1.2rem;
-  }
-  
+}
+
+/* Task list */
+#taskList .card {
+  border-left: 4px solid #0d6efd;
+}
+#taskList .card.completed {
+  border-left-color: #198754;
+  opacity: .9;
+}
+
+/* Attendance */
+#attendanceStatus {
+  font-size: .95rem;
+}
+
+/* Toasts */
+.toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1060;
+}

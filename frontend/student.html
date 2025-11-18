@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      background-color: #f4f6f9;
+      font-family: "Poppins", sans-serif;
+    }
+    .navbar {
+      background-color: #007bff;
+      color: #fff;
+    }
+    .navbar h4 {
+      color: #fff;
+      margin: 0;
+    }
+    .card {
+      border-radius: 15px;
+      box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .progress {
+      height: 12px;
+      border-radius: 10px;
+    }
+    footer {
+      text-align: center;
+      padding: 15px;
+      background: #007bff;
+      color: #fff;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar px-4 py-3 d-flex justify-content-between align-items-center">
+    <h4>🎓 Student Dashboard</h4>
+    <button id="logoutBtn" class="btn btn-light btn-sm">Logout</button>
+  </nav>
+
+  <div class="container mt-4">
+    <!-- Profile Section -->
+    <div class="card p-4 mb-4">
+      <h5 class="mb-3">👤 Student Profile</h5>
+      <p><strong>Name:</strong> <span id="studentName">—</span></p>
+      <p><strong>Email:</strong> <span id="userEmail">—</span></p>
+      <p><strong>Course:</strong> <span id="userCourse">—</span></p>
+    </div>
+
+    <!-- Attendance Section -->
+    <div class="card p-4 mb-4">
+      <h5 class="mb-3">🕒 Attendance Details</h5>
+      <p><strong>Today’s Login:</strong> <span id="todayAttendance">—</span></p>
+      <p><strong>Last Duration:</strong> <span id="lastDuration">—</span> mins</p>
+      <p><strong>Status:</strong> <span id="attendanceStatus">—</span></p>
+      <button id="manualLogout" class="btn btn-danger btn-sm mt-2">
+        Manual Logout
+      </button>
+    </div>
+
+    <!-- Tasks Section -->
+    <div class="card p-4 mb-4">
+      <h5 class="mb-3">📝 Course Tasks</h5>
+      <div class="progress mb-2">
+        <div
+          id="taskProgressBar"
+          class="progress-bar bg-success"
+          role="progressbar"
+          style="width: 0%"
+        ></div>
+      </div>
+      <p><strong>Progress:</strong> <span id="taskProgress">0/0</span></p>
+      <div id="taskList" class="mt-3"></div>
+    </div>
+
+    <!-- Exam Eligibility -->
+    <div class="card p-4 mb-4">
+      <h5 class="mb-3">📘 Exam Eligibility</h5>
+      <button id="checkExam" class="btn btn-primary btn-sm">
+        Check Eligibility
+      </button>
+      <p class="mt-3"><strong>Status:</strong> <span id="examResult">—</span></p>
+    </div>
+
+    <!-- Results Section -->
+    <div class="card p-4 mb-4">
+      <h5 class="mb-3">📊 Results</h5>
+      <div id="resultsArea"></div>
+    </div>
+  </div>
+
+  <footer>© 2025 Student Dashboard | Designed by Mugilan M</footer>
+
+  <!-- Common Helper JS -->
+  <script>
+    // Simple helper: redirect if not logged in
+    function requireAuthOrRedirect() {
+      const student = localStorage.getItem("student");
+      if (!student) {
+        alert("Please login first!");
+        window.location.href = "index.html";
+        throw new Error("Unauthorized");
+      }
+    }
+
+    // Logout
+    function logoutFrontend() {
+      localStorage.removeItem("student");
+      window.location.href = "index.html";
+    }
+
+    // Fetch helper
+    async function request(url, options = {}) {
+      const res = await fetch("http://localhost:5000/api" + url, {
+        method: options.method || "GET",
+        headers: { "Content-Type": "application/json" },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+  </script>
+
+  <!-- Dashboard Logic -->
+  <script>
+    document.addEventListener("DOMContentLoaded", initStudent);
+
+    async function initStudent() {
+      try {
+        requireAuthOrRedirect();
+      } catch (e) {
+        return;
+      }
+
+      const student = JSON.parse(localStorage.getItem("student") || "{}");
+      document.getElementById("studentName").innerText = student.name || "Student";
+      document.getElementById("userEmail").innerText = student.email || "";
+      document.getElementById("userCourse").innerText =
+        student.course_name || student.course || "—";
+
+      // logout
+      document.getElementById("logoutBtn").addEventListener("click", logoutFrontend);
+      document
+        .getElementById("manualLogout")
+        .addEventListener("click", logoutFrontend);
+
+      const courseId = student.course_id || student.course || 1;
+      await loadTasks(courseId, student.id);
+      await loadResults(student.id);
+      await updateAttendanceInfo(student.id);
+
+      // Check exam
+      document.getElementById("checkExam").addEventListener("click", async () => {
+        try {
+          const res = await request(`/courses/${courseId}/eligible/${student.id}`);
+          document.getElementById("examResult").innerText = res.eligible
+            ? "✅ Exam Enabled"
+            : `Not eligible (${res.completedTasks}/${res.totalTasks})`;
+        } catch (err) {
+          document.getElementById("examResult").innerText =
+            "Error: " + err.message;
+        }
+      });
+    }
+
+    async function loadTasks(courseId, studentId) {
+      try {
+        const tasks = await request(`/tasks/course/${courseId}`);
+        const container = document.getElementById("taskList");
+        if (!tasks || tasks.length === 0) {
+          container.innerHTML =
+            '<div class="text-muted">No tasks assigned yet.</div>';
+          document.getElementById("taskProgress").innerText = "0/0";
+          document.getElementById("taskProgressBar").style.width = "0%";
+          return;
+        }
+
+        container.innerHTML = tasks
+          .map(
+            (t) => `
+        <div class="card p-2 mb-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>${escapeHtml(t.title)}</strong>
+              <div class="text-muted small">${escapeHtml(t.description || "")}</div>
+            </div>
+            <button class="btn btn-success btn-sm" onclick="completeTask(${t.id})">Complete</button>
+          </div>
+        </div>`
+          )
+          .join("");
+
+        const summary = await request(`/courses/${courseId}/eligible/${studentId}`);
+        const total = summary.totalTasks || 0;
+        const done = summary.completedTasks || 0;
+        const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+        document.getElementById("taskProgress").innerText = `${done}/${total}`;
+        document.getElementById("taskProgressBar").style.width = percent + "%";
+      } catch (err) {
+        console.error(err);
+        document.getElementById("taskList").innerText = "Unable to load tasks";
+      }
+    }
+
+    async function completeTask(taskId) {
+      const student = JSON.parse(localStorage.getItem("student") || "{}");
+      try {
+        await request("/tasks/complete", {
+          method: "POST",
+          body: { student_id: student.id, task_id: taskId },
+        });
+        await loadTasks(student.course_id || student.course || 1, student.id);
+        alert("Task marked complete ✅");
+      } catch (err) {
+        alert("Could not complete task: " + err.message);
+      }
+    }
+
+    async function loadResults(studentId) {
+      try {
+        const res = await request(`/results/student/${studentId}`);
+        const el = document.getElementById("resultsArea");
+        if (!res || res.length === 0) {
+          el.innerHTML = "<div class='text-muted'>No results yet.</div>";
+          return;
+        }
+        let html = '<ul class="list-group">';
+        for (const r of res) {
+          html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+            ${escapeHtml(r.title)} - ${r.marks_obtained}/${r.total_marks}
+            <span class="${
+              r.status === "Pass" ? "text-success" : "text-danger"
+            }">${r.status}</span>
+          </li>`;
+        }
+        html += "</ul>";
+        el.innerHTML = html;
+      } catch (err) {
+        console.warn("Results load error", err);
+        document.getElementById("resultsArea").innerText = "Unable to load results";
+      }
+    }
+
+    async function updateAttendanceInfo(studentId) {
+      try {
+        const rows = await request(`/attendance/student/${studentId}`);
+        if (Array.isArray(rows) && rows.length > 0) {
+          const today = rows.find(
+            (r) =>
+              new Date(r.login_time).toDateString() ===
+              new Date().toDateString()
+          );
+          document.getElementById("todayAttendance").innerText = today
+            ? new Date(today.login_time).toLocaleTimeString()
+            : "Not logged today";
+          document.getElementById("lastDuration").innerText =
+            rows[0].duration_minutes || "—";
+          document.getElementById("attendanceStatus").innerText = today
+            ? "Logged in ✅"
+            : "Not logged";
+        } else {
+          document.getElementById("todayAttendance").innerText = "—";
+          document.getElementById("lastDuration").innerText = "—";
+          document.getElementById("attendanceStatus").innerText = "Not logged";
+        }
+      } catch (err) {
+        console.warn("attendance info error", err);
+      }
+    }
+
+    function escapeHtml(str = "") {
+      return (
+        str.replace &&
+        str.replace(/[&<>"']/g, (s) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[
+            s
+          ])
+        )
+      );
+    }
+  </script>
+</body>
+</html>
